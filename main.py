@@ -12,6 +12,8 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime
 import os
+print("🚀 البوت بدأ يشتغل فعلياً...") 
+# باقي الكود بتاعك
 
 # تفعيل اللوجينج
 logging.basicConfig(
