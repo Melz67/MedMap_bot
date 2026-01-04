@@ -40,7 +40,7 @@ class ExcelHandler:
         today = datetime.now()
         day_name = today.strftime("%a")
         date_str = today.strftime("%d-%b")
-        return f"Report_{day_name}_{date_str}.xlsx"
+        return f"Elzonkrani_Report_{day_name}_{date_str}.xlsx"
     
     @staticmethod
     def create_new_report(user_name=""):
@@ -510,14 +510,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+
 def main():
     """تشغيل البوت"""
+    TOKEN = "8432531887:AAGQGs-83vyWLImFFPEluRNfYIqR6sn-fMU"
 
-    TOKEN = os.getenv("BOT_TOKEN")
 
-    if not TOKEN:
-        raise RuntimeError("❌ BOT_TOKEN is not set")
-
+    
     application = Application.builder().token(TOKEN).build()
     
     conv_handler = ConversationHandler(
@@ -543,3 +542,7 @@ def main():
     
     print("🤖 البوت يعمل الآن...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
