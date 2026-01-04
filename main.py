@@ -12,8 +12,6 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime
 import os
-print("🚀 البوت بدأ يشتغل فعلياً...") 
-# باقي الكود بتاعك
 
 # تفعيل اللوجينج
 logging.basicConfig(
@@ -42,7 +40,7 @@ class ExcelHandler:
         today = datetime.now()
         day_name = today.strftime("%a")
         date_str = today.strftime("%d-%b")
-        return f"Elzonkrani_Report_{day_name}_{date_str}.xlsx"
+        return f"Report_{day_name}_{date_str}.xlsx"
     
     @staticmethod
     def create_new_report(user_name=""):
@@ -56,7 +54,7 @@ class ExcelHandler:
         # إنشاء workbook جديد
         wb = Workbook()
         ws = wb.active
-        ws.title = "Report_{day_name}_{date_str}"
+        ws.title = "Daily Report"
         
         # ===== تعريف الأنماط =====
         header_fill = PatternFill("solid", fgColor="FFFF00")
