@@ -12,6 +12,8 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime
 import os
+print("🚀 البوت بدأ يشتغل فعلياً...") 
+# باقي الكود بتاعك
 
 # تفعيل اللوجينج
 logging.basicConfig(
@@ -513,7 +515,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """تشغيل البوت"""
-    TOKEN = "8432531887:AAGQGs-83vyWLImFFPEluRNfYIqR6sn-fMU"
+    TOKEN = os.getenv("BOT_TOKEN")
+
 
 
     
