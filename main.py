@@ -12,6 +12,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime
 import os
+import json
 from dotenv import load_dotenv
 
 # 1. تحميل متغيرات البيئة
@@ -35,6 +36,32 @@ FIRST_NAME_INPUT, LAST_NAME_INPUT = 11, 12
 REPORTS_DIR = "reports"
 if not os.path.exists(REPORTS_DIR):
     os.makedirs(REPORTS_DIR)
+
+USERS_DATA_FILE = "users_data.json"
+
+# --- دوال إدارة بيانات المستخدمين ---
+def load_users_data():
+    """تحميل بيانات المستخدمين من الملف"""
+    if os.path.exists(USERS_DATA_FILE):
+        with open(USERS_DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_user_data(user_id, first_name, full_name):
+    """حفظ بيانات مستخدم جديد"""
+    users_data = load_users_data()
+    users_data[str(user_id)] = {
+        'first_name': first_name,
+        'full_name': full_name,
+        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    with open(USERS_DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users_data, f, ensure_ascii=False, indent=2)
+
+def get_user_data(user_id):
+    """جلب بيانات مستخدم محدد"""
+    users_data = load_users_data()
+    return users_data.get(str(user_id))
 
 # --- كلاس ExcelHandler (معدل) ---
 class ExcelHandler:
@@ -272,9 +299,12 @@ async def last_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     full_name = f"{first_name} {last_name}"
     user_id = update.effective_user.id
     
-    # حفظ المعلومات
+    # حفظ المعلومات في context
     context.user_data['full_name'] = full_name
     context.user_data['user_id'] = user_id
+    
+    # حفظ البيانات بشكل دائم في ملف JSON
+    save_user_data(user_id, first_name, full_name)
     
     # إنشاء التقرير
     filepath, is_new = ExcelHandler.create_new_report(user_id, first_name, full_name)
@@ -363,9 +393,20 @@ async def comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Comment": context.user_data.get('comment', '')
     }
     
-    # استخدام user_id و first_name من المستخدم
+    # جلب بيانات المستخدم من الملف المحفوظ
     user_id = update.effective_user.id
-    first_name = context.user_data.get('first_name', 'User')
+    user_data = get_user_data(user_id)
+    
+    if not user_data:
+        await update.message.reply_text(
+            "⚠️ *لم يتم العثور على بياناتك!*\n\n"
+            "الرجاء إنشاء تقرير جديد أولاً من القائمة الرئيسية.",
+            reply_markup=ReplyKeyboardRemove(),
+            parse_mode='Markdown'
+        )
+        return await start(update, context)
+    
+    first_name = user_data['first_name']
     
     filepath = ExcelHandler.add_visit(user_id, first_name, visit_type, data)
     
@@ -417,8 +458,20 @@ async def pharmacy_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Comment": context.user_data.get('pharmacy_comment', '')
     }
     
+    # جلب بيانات المستخدم من الملف المحفوظ
     user_id = update.effective_user.id
-    first_name = context.user_data.get('first_name', 'User')
+    user_data = get_user_data(user_id)
+    
+    if not user_data:
+        await update.message.reply_text(
+            "⚠️ *لم يتم العثور على بياناتك!*\n\n"
+            "الرجاء إنشاء تقرير جديد أولاً من القائمة الرئيسية.",
+            reply_markup=ReplyKeyboardRemove(),
+            parse_mode='Markdown'
+        )
+        return await start(update, context)
+    
+    first_name = user_data['first_name']
     
     filepath = ExcelHandler.add_visit(user_id, first_name, "PHARMACY", data)
     
@@ -441,7 +494,19 @@ async def pharmacy_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    first_name = context.user_data.get('first_name', 'User')
+    
+    # جلب بيانات المستخدم من الملف المحفوظ
+    user_data = get_user_data(user_id)
+    
+    if not user_data:
+        await update.message.reply_text(
+            "⚠️ *لم يتم العثور على بياناتك!*\n\n"
+            "الرجاء إنشاء تقرير جديد أولاً من القائمة الرئيسية.",
+            parse_mode='Markdown'
+        )
+        return await start(update, context)
+    
+    first_name = user_data['first_name']
     
     filename = ExcelHandler.get_today_filename(user_id, first_name)
     filepath = os.path.join(REPORTS_DIR, filename)
@@ -479,6 +544,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
+async def reset_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إعادة تعيين المحادثة في حالة حدوث خطأ"""
+    context.user_data.clear()
+    return await start(update, context)
+
 # --- وظيفة التشغيل الرئيسية ---
 def main():
     """تشغيل البوت باستخدام التوكن من متغيرات البيئة"""
@@ -506,10 +576,17 @@ def main():
             PHARMACY_PRODUCTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, pharmacy_products)],
             PHARMACY_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, pharmacy_comment)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CommandHandler("start", start),  # السماح بـ /start في أي وقت
+        ],
+        allow_reentry=True,  # السماح بإعادة الدخول للمحادثة
     )
     
+    # إضافة handler للرسائل خارج المحادثة
     application.add_handler(conv_handler)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reset_conversation))
+    
     print("🤖 البوت يعمل الآن...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
