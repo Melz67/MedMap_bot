@@ -15,20 +15,16 @@ import os
 import json
 from dotenv import load_dotenv
 
-# 1. تحميل متغيرات البيئة
 load_dotenv()
 
-# 2. جلب التوكن من النظام
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# تفعيل اللوجينج
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# --- الثوابت والمجلدات ---
 MAIN_MENU, VISIT_TYPE, DOCTOR_NAME, LOCATION, SPECIALTY, PRODUCTS, COMMENT = range(7)
 PHARMACY_NAME, PHARMACY_ADDRESS, PHARMACY_PRODUCTS, PHARMACY_COMMENT = range(7, 11)
 FIRST_NAME_INPUT, LAST_NAME_INPUT = 11, 12
@@ -39,7 +35,6 @@ if not os.path.exists(REPORTS_DIR):
 
 USERS_DATA_FILE = "users_data.json"
 
-# --- دوال إدارة بيانات المستخدمين ---
 def load_users_data():
     """تحميل بيانات المستخدمين من الملف"""
     if os.path.exists(USERS_DATA_FILE):
@@ -63,7 +58,6 @@ def get_user_data(user_id):
     users_data = load_users_data()
     return users_data.get(str(user_id))
 
-# --- كلاس ExcelHandler (معدل) ---
 class ExcelHandler:
     @staticmethod
     def get_today_filename(user_id, first_name):
@@ -84,7 +78,6 @@ class ExcelHandler:
         ws = wb.active
         ws.title = "Daily Report"
         
-        # التنسيقات
         header_fill = PatternFill("solid", fgColor="FFFF00")
         blue_fill = PatternFill("solid", fgColor="31859B")
         orange_fill = PatternFill("solid", fgColor="FABF8F")
@@ -99,21 +92,19 @@ class ExcelHandler:
             bottom=Side(style="thin")
         )
         
-        # العنوان الرئيسي
         ws.merge_cells("A2:F2")
         ws["A2"].value = "Daily Report"
         ws["A2"].font = Font(bold=True, size=14)
         ws["A2"].alignment = center
         ws["A2"].fill = header_fill
         
-        # الاسم والتاريخ
         ws["A4"].value = "Name:"
         ws["A5"].value = "Date:"
         ws["A4"].font = ws["A5"].font = bold
         
         ws.merge_cells("B4:F4")
         ws.merge_cells("B5:F5")
-        ws["B4"].value = full_name  # الاسم الكامل هنا
+        ws["B4"].value = full_name  
         ws["B5"].value = datetime.now().strftime("%d/%m/%Y")
         ws["B5"].alignment = left_align
         
@@ -121,7 +112,6 @@ class ExcelHandler:
             ws[f"{col}4"].fill = blue_fill
             ws[f"{col}5"].fill = orange_fill
         
-        # Headers للزيارات
         headers = ["A.M / P.M", "Doctor Name", "Hospital", "Specialist", "Product", "Comment"]
         header_row = 7
         for col, h in enumerate(headers, start=1):
@@ -131,7 +121,6 @@ class ExcelHandler:
             cell.alignment = center
             cell.border = border
         
-        # قسم A.M
         ws.merge_cells("A8:A14")
         ws["A8"].value = "A.M"
         ws["A8"].alignment = center
@@ -145,7 +134,6 @@ class ExcelHandler:
         for c in range(1, 7):
             ws.cell(row=15, column=c).fill = orange_fill
         
-        # قسم P.M
         ws.merge_cells("A16:A28")
         ws["A16"].value = "P.M"
         ws["A16"].alignment = center
@@ -159,7 +147,6 @@ class ExcelHandler:
         for c in range(1, 7):
             ws.cell(row=29, column=c).fill = orange_fill
         
-        # قسم PHARMACY
         ws.merge_cells("A30:A37")
         ws["A30"].value = "PHARMACY"
         ws["A30"].alignment = center
@@ -182,7 +169,6 @@ class ExcelHandler:
             for c in range(2, 7):
                 ws.cell(row=r, column=c).border = border
         
-        # عرض الأعمدة
         widths = [15, 25, 20, 20, 20, 30]
         for i, w in enumerate(widths, start=1):
             ws.column_dimensions[chr(64 + i)].width = w
@@ -197,7 +183,7 @@ class ExcelHandler:
         filepath = os.path.join(REPORTS_DIR, filename)
         
         if not os.path.exists(filepath):
-            return None  # الملف غير موجود
+            return None 
         
         wb = load_workbook(filepath)
         ws = wb.active
@@ -247,7 +233,6 @@ class ExcelHandler:
         wb.save(filepath)
         return filepath
 
-# --- وظائف البوت ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         ["📊 إنشاء تقرير جديد"],
@@ -299,14 +284,13 @@ async def last_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     full_name = f"{first_name} {last_name}"
     user_id = update.effective_user.id
     
-    # حفظ المعلومات في context
+
     context.user_data['full_name'] = full_name
     context.user_data['user_id'] = user_id
     
-    # حفظ البيانات بشكل دائم في ملف JSON
+
     save_user_data(user_id, first_name, full_name)
     
-    # إنشاء التقرير
     filepath, is_new = ExcelHandler.create_new_report(user_id, first_name, full_name)
     filename = os.path.basename(filepath)
     
@@ -393,7 +377,6 @@ async def comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Comment": context.user_data.get('comment', '')
     }
     
-    # جلب بيانات المستخدم من الملف المحفوظ
     user_id = update.effective_user.id
     user_data = get_user_data(user_id)
     
@@ -458,7 +441,6 @@ async def pharmacy_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Comment": context.user_data.get('pharmacy_comment', '')
     }
     
-    # جلب بيانات المستخدم من الملف المحفوظ
     user_id = update.effective_user.id
     user_data = get_user_data(user_id)
     
@@ -495,7 +477,7 @@ async def pharmacy_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # جلب بيانات المستخدم من الملف المحفوظ
+    
     user_data = get_user_data(user_id)
     
     if not user_data:
@@ -549,7 +531,6 @@ async def reset_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data.clear()
     return await start(update, context)
 
-# --- وظيفة التشغيل الرئيسية ---
 def main():
     """تشغيل البوت باستخدام التوكن من متغيرات البيئة"""
     
@@ -578,12 +559,11 @@ def main():
         },
         fallbacks=[
             CommandHandler("cancel", cancel),
-            CommandHandler("start", start),  # السماح بـ /start في أي وقت
+            CommandHandler("start", start),  
         ],
-        allow_reentry=True,  # السماح بإعادة الدخول للمحادثة
+        allow_reentry=True,  
     )
     
-    # إضافة handler للرسائل خارج المحادثة
     application.add_handler(conv_handler)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reset_conversation))
     
