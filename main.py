@@ -36,14 +36,12 @@ if not os.path.exists(REPORTS_DIR):
 USERS_DATA_FILE = "users_data.json"
 
 def load_users_data():
-    """تحميل بيانات المستخدمين من الملف"""
     if os.path.exists(USERS_DATA_FILE):
         with open(USERS_DATA_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
 def save_user_data(user_id, first_name, full_name):
-    """حفظ بيانات مستخدم جديد"""
     users_data = load_users_data()
     users_data[str(user_id)] = {
         'first_name': first_name,
@@ -54,14 +52,12 @@ def save_user_data(user_id, first_name, full_name):
         json.dump(users_data, f, ensure_ascii=False, indent=2)
 
 def get_user_data(user_id):
-    """جلب بيانات مستخدم محدد"""
     users_data = load_users_data()
     return users_data.get(str(user_id))
 
 class ExcelHandler:
     @staticmethod
     def get_today_filename(user_id, first_name):
-        """إنشاء اسم الملف بناءً على الاسم الأول و user_id"""
         today = datetime.now()
         day_name = today.strftime("%a")
         date_str = today.strftime("%d-%b")
@@ -70,7 +66,6 @@ class ExcelHandler:
     
     @staticmethod
     def create_new_report(user_id, first_name, full_name):
-        """إنشاء تقرير جديد مع الاسم الكامل في الداخل"""
         filename = ExcelHandler.get_today_filename(user_id, first_name)
         filepath = os.path.join(REPORTS_DIR, filename)
         
@@ -178,7 +173,6 @@ class ExcelHandler:
     
     @staticmethod
     def add_visit(user_id, first_name, visit_type, data):
-        """إضافة زيارة للتقرير"""
         filename = ExcelHandler.get_today_filename(user_id, first_name)
         filepath = os.path.join(REPORTS_DIR, filename)
         
@@ -272,13 +266,11 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await send_report(update, context)
 
 async def first_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """استقبال الاسم الأول"""
     context.user_data['first_name'] = update.message.text.strip()
     await update.message.reply_text("👤 أدخل باقي الاسم:")
     return LAST_NAME_INPUT
 
 async def last_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """استقبال باقي الاسم وإنشاء التقرير"""
     last_name = update.message.text.strip()
     first_name = context.user_data['first_name']
     full_name = f"{first_name} {last_name}"
@@ -532,7 +524,6 @@ async def reset_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return await start(update, context)
 
 def main():
-    """تشغيل البوت باستخدام التوكن من متغيرات البيئة"""
     
     if not BOT_TOKEN:
         print("❌ خطأ: لم يتم العثور على BOT_TOKEN في متغيرات البيئة!")
